@@ -18,11 +18,11 @@ int sc_main(int argc, char* argv[]){
   mob.begin(begin);
   mob.end(end);
 
-  for(int i = 0; i < 10; i++){
+  for(int i = 0; i < 30; i++){
     clock = 0;
-    sc_start(1, SC_NS);
+    sc_start(10, SC_MS);
     clock = 1;
-    sc_start(1, SC_NS);
+    sc_start(10, SC_MS);
   }
 
 }

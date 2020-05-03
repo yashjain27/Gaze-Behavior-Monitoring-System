@@ -70,7 +70,6 @@ SC_MODULE(mobile){
 
 	void convert(){
 		tupleROI = ROI; //Assign old value of ROI to tupleROI
-		cout << "tuple: " << tupleROI << endl;
 		if(index == 1){
 			ROI = -1;
 			for(i = 0; i < size[index - 1]; i++){
@@ -117,26 +116,17 @@ SC_MODULE(mobile){
 	}
 
 	void compress(){
-		//Break away from initial case
-		if(tupleROI.read() == 0){
-			cout << "tuple Broken" << endl;
-			return;
-		}
-
 		if(ROI != tupleROI){
-
+			tupleTend = sc_simulation_time();
+			packetize();
 		}
-		// int tupROI, tupTs, tupTe;
-		// tupleROI = tupROI;
-		// tupleTstart = tupTs;
-		// tupleTend = sc_simulation_time();
-		// if(tupROI != -1){
-		// 	tupROI = ROI.read();
-		// 	tupTs = sc_simulation_time();
-		// }
 	}
 
 	void packetize(){
+		cout << "Packetize" << endl;
+		cout << "ROI: " << tupleROI << endl;
+		cout << "time: " << sc_simulation_time() << endl << endl;
+
 		packet[tuple_counter][0] = tupleROI.read();
 		packet[tuple_counter][1] = tupleTstart.read();
 		packet[tuple_counter][2] = tupleTend.read();
@@ -144,16 +134,23 @@ SC_MODULE(mobile){
 			tuple_counter++;
 			packet_counter = 0;
 		}else{
+			cout << "Tuple counter: " << tuple_counter << endl;
 			tuple_counter = 0;
 			packet_counter = 1;
+			prc_transmit();
 		}
+		tupleTstart = sc_simulation_time();
+		//
+		// cout << "Ts: " << tupleTstart << endl;
+		// cout << "Te: " << tupleTend << endl << endl;
 	}
 
 	void prc_transmit(){
 		if(packet_counter == 1){
 		bool success;
 		while(true){
-			if(!free)wait(sc_time((rand() % 5000), SC_MS));
+			if(!free)
+				wait(sc_time((rand() % 5000), SC_MS));
 			else{
 				success = false;
 				while(success == false){
@@ -161,7 +158,7 @@ SC_MODULE(mobile){
 					wait(incoming);
 					if(incoming){
 						begin = 1;
-						wait(sc_time(1000, SC_NS));
+						wait(sc_time(2000, SC_NS));
 						end = 1;
 						success = true;
 					}else{
@@ -176,6 +173,7 @@ SC_MODULE(mobile){
 
 	SC_CTOR(mobile):in("gaze_out.txt"){
 		index = 1, i = 0, tuple_counter = 0, x = 0, y = 0;
+		tupleTstart = sc_simulation_time();
 		SC_METHOD(sensor);
 		sensitive << clock.pos();
 	}
