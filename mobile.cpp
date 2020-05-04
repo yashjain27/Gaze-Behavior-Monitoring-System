@@ -150,7 +150,7 @@ SC_MODULE(mobile){
 		bool success;
 		while(true){
 			if(!free)
-				wait(sc_time((rand() % 5000), SC_MS));
+				wait(sc_time((rand() % 5000), SC_NS));
 			else{
 				success = false;
 				while(success == false){
@@ -163,7 +163,7 @@ SC_MODULE(mobile){
 						success = true;
 						outgoing = 0;
 					}else{
-						wait(sc_time((rand() % 5000), SC_MS));
+						wait(sc_time((rand() % 5000), SC_NS));
 					}
 					break;
 				}
