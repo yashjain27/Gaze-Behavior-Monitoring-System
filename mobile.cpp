@@ -161,6 +161,7 @@ SC_MODULE(mobile){
 						wait(sc_time(2000, SC_NS));
 						end = 1;
 						success = true;
+						outgoing = 0;
 					}else{
 						wait(sc_time((rand() % 5000), SC_MS));
 					}
