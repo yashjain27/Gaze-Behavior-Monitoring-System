@@ -13,7 +13,9 @@ SC_MODULE(mobile){
 	sc_out<bool> end;
 	sc_signal<sc_int<4> > ROI, tupleROI;
 	sc_signal<sc_uint<32> > tupleTstart, tupleTend;
-	sc_signal<bool> packet_counter;
+	sc_signal<bool> packet_counter{"packet_counter"};
+
+	//Variables
 	int image_counter, tuple_counter, x, y;
 	int size[5] = {5, 4, 4, 7, 7};
 	int index, i;
@@ -55,15 +57,18 @@ SC_MODULE(mobile){
 		{7, 10, 870, 1000, 1010}
 	};
 	int packet [20][3];
+	bool continueMob;
 
 	//File stuff
 	string str;
 	ifstream in;
 
 	void sensor(){
+		if(!continueMob) return;
 		getline(in, str);
 		x = atoi(str.substr(0,3).c_str());
     y = atoi(str.substr(4,7).c_str());
+		cout << endl << name() << endl;
     cout << "X: " << x << " Y: " << y << endl;
 		convert();
 	}
@@ -74,6 +79,7 @@ SC_MODULE(mobile){
 			ROI = -1;
 			for(i = 0; i < size[index - 1]; i++){
 				if(image1[i][1] <= x && image1[i][3] >= x & image1[i][2] <= y & image1[i][4] >= y){
+					cout << "ROI: " << i << endl;
 					ROI = i;
 					break;
 				}
@@ -82,6 +88,7 @@ SC_MODULE(mobile){
 			ROI = -1;
 			for(i = 0; i < size[index - 1]; i++){
 				if(image2[i][1] <= x & image2[i][3] >= x & image2[i][2] <= y & image2[i][4] >= y){
+					cout << "ROI: " << i << endl;
 					ROI = i;
 					break;
 				}
@@ -90,6 +97,7 @@ SC_MODULE(mobile){
 			ROI = -1;
 			for(i = 0; i < size[index - 1]; i++){
 				if(image3[i][1] <= x & image3[i][3] >= x & image3[i][2] <= y & image3[i][4] >= y){
+					cout << "ROI: " << i << endl;
 					ROI = i;
 					break;
 				}
@@ -98,6 +106,7 @@ SC_MODULE(mobile){
 			ROI = -1;
 			for(i = 0; i < size[index - 1]; i++){
 				if(image4[i][1] <= x & image4[i][3] >= x & image4[i][2] <= y & image4[i][4] >= y){
+					cout << "ROI: " << i << endl;
 					ROI = i;
 					break;
 				}
@@ -106,12 +115,12 @@ SC_MODULE(mobile){
 			ROI = -1;
 			for(i = 0; i < size[index - 1]; i++){
 				if(image5[i][1] <= x & image5[i][3] >= x & image5[i][2] <= y & image5[i][4] >= y){
+					cout << "ROI: " << i << endl;
 					ROI = i;
 					break;
 				}
 			}
 		}
-		cout << "ROI: " << ROI << endl;
 		compress();
 	}
 
@@ -132,12 +141,12 @@ SC_MODULE(mobile){
 		packet[tuple_counter][2] = tupleTend.read();
 		if(tuple_counter != 19){
 			tuple_counter++;
+			cout << "Tuple counter1: " << tuple_counter << endl;
 			packet_counter = 0;
 		}else{
-			cout << "Tuple counter: " << tuple_counter << endl;
+			cout << "Tuple counter2: " << tuple_counter << endl;
 			tuple_counter = 0;
 			packet_counter = 1;
-			prc_transmit();
 		}
 		tupleTstart = sc_simulation_time();
 		//
@@ -146,36 +155,53 @@ SC_MODULE(mobile){
 	}
 
 	void prc_transmit(){
-		if(packet_counter == 1){
-		bool success;
 		while(true){
-			if(!free)
-				wait(sc_time((rand() % 5000), SC_NS));
-			else{
-				success = false;
-				while(success == false){
-					outgoing = 1;
-					wait(incoming);
-					if(incoming){
-						begin = 1;
-						wait(sc_time(2000, SC_NS));
-						end = 1;
-						success = true;
-						outgoing = 0;
-					}else{
-						wait(sc_time((rand() % 5000), SC_NS));
+			begin = 0;
+			end = 0;
+			outgoing = 0;
+			cout << "Before entering packet_counter " << name() << endl;
+			wait(packet_counter.posedge_event());
+			bool success;
+			while(true){
+				continueMob = false;
+				if(!free){
+					int time = (rand() % 5000);
+					cout << "Random time of " << name() << " is: " << time << endl;
+					wait(sc_time(time, SC_NS));
+				}else{
+					success = false;
+					while(success == false){
+						outgoing = 1;
+						//wait(incoming.posedge_event());
+						if(incoming){
+							begin = 1;
+							cout << "Send Begin High for " << name() << endl;
+							wait(sc_time(2000, SC_NS));
+							end = 1;
+							cout << "Send End High for " << name() << endl;
+							wait(incoming.negedge_event());
+							success = true;
+						}else{
+							int time = (rand() % 5000);
+							cout << "Wait Random time of " << name() << " is: " << time << endl;
+							wait(time, SC_NS);
+						}
 					}
-					break;
 				}
+				continueMob = true;
+				break;
 			}
-		}
 		}
 	}
 
-	SC_CTOR(mobile):in("gaze_out.txt"){
-		index = 1, i = 0, tuple_counter = 0, x = 0, y = 0;
-		tupleTstart = sc_simulation_time();
-		SC_METHOD(sensor);
-		sensitive << clock.pos();
-	}
+	SC_HAS_PROCESS(mobile);
+
+	mobile(sc_module_name name_) :
+    sc_module(name_), in("gaze_out.txt"){
+			index = 1, i = 0, tuple_counter = 0, x = 0, y = 0, continueMob = true;
+			tupleTstart = sc_simulation_time();
+			SC_METHOD(sensor);
+			sensitive << clock.pos();
+			SC_THREAD(prc_transmit);
+		}
 };

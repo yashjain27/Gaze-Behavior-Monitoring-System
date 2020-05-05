@@ -17,6 +17,10 @@ int sc_main(int argc, char* argv[]){
   sc_signal<bool> outgoing2;
   sc_signal<bool> outgoing3;
   sc_signal<bool> free;
+  sc_signal<bool> clock;
+
+  sc_core::sc_report_handler::set_actions( "/IEEE_Std_1666/deprecated",
+                                           sc_core::SC_DO_NOTHING );
 
   mobile mob1("mob1");
   mob1.clock(clock);
@@ -59,9 +63,9 @@ int sc_main(int argc, char* argv[]){
 
   for(int i = 0; i < 30; i++){
     clock = 0;
-    sc_start(10, SC_MS);
+    sc_start(10, SC_NS);
     clock = 1;
-    sc_start(10, SC_MS);
+    sc_start(10, SC_NS);
   }
 
 }
