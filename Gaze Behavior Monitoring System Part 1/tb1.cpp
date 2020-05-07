@@ -1,4 +1,4 @@
- #include "systemc.h"
+#include "systemc.h"
 #include "mobile.cpp"
 #include "server.cpp"
 
@@ -22,10 +22,7 @@ int sc_main(int argc, char* argv[]){
   sc_core::sc_report_handler::set_actions( "/IEEE_Std_1666/deprecated",
                                            sc_core::SC_DO_NOTHING );
 
-  int packetsize = 1000;
-  int bandwidth = 1000;
-
-  mobile mob1("mob1", bandwidth, packetsize);
+  mobile mob1("mob1");
   mob1.clock(clock);
   mob1.free(free);
   mob1.incoming(outgoing1);
@@ -33,7 +30,7 @@ int sc_main(int argc, char* argv[]){
   mob1.begin(begin1);
   mob1.end(end1);
 
-  mobile mob2("mob2", bandwidth, packetsize);
+  mobile mob2("mob2");
   mob2.clock(clock);
   mob2.free(free);
   mob2.incoming(outgoing2);
@@ -41,7 +38,7 @@ int sc_main(int argc, char* argv[]){
   mob2.begin(begin2);
   mob2.end(end2);
 
-  mobile mob3("mob3", bandwidth, packetsize);
+  mobile mob3("mob3");
   mob3.clock(clock);
   mob3.free(free);
   mob3.incoming(outgoing3);
@@ -49,7 +46,7 @@ int sc_main(int argc, char* argv[]){
   mob3.begin(begin3);
   mob3.end(end3);
 
-  server srvr("server", bandwidth, packetsize);
+  server srvr("server");
   srvr.begin1(begin1);
   srvr.begin2(begin2);
   srvr.begin3(begin3);
@@ -63,13 +60,12 @@ int sc_main(int argc, char* argv[]){
   srvr.outgoing2(outgoing2);
   srvr.outgoing3(outgoing3);
   srvr.free(free);
-  srvr.clk(clock);
 
-  for(int i = 0; i < 200; i++){
-    sc_start(1, SC_MS);
+  for(int i = 0; i < 30; i++){
     clock = 0;
-    sc_start(1, SC_MS);
+    sc_start(10, SC_NS);
     clock = 1;
+    sc_start(10, SC_NS);
   }
 
 }

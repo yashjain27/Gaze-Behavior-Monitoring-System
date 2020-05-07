@@ -11,13 +11,12 @@ SC_MODULE(mobile){
 	sc_out<bool> outgoing;
 	sc_out<bool> begin;
 	sc_out<bool> end;
-	sc_out<bool> rx_begin;
-	sc_out<bool> rx_end;
 	sc_signal<sc_int<4> > ROI, tupleROI;
+	sc_signal<sc_uint<32> > tupleTstart, tupleTend;
 	sc_signal<bool> packet_counter{"packet_counter"};
 
 	//Variables
-	int image_tracker, tuple_counter, x, y;
+	int image_counter, tuple_counter, x, y;
 	int size[5] = {5, 4, 4, 7, 7};
 	int index, i;
 	int image1 [5][5] = {
@@ -59,10 +58,6 @@ SC_MODULE(mobile){
 	};
 	//int packet [20][3];
 	bool continueMob;
-	int packet_max;
-	int rx_packet_counter;
-	int image_counter;
-	double packet_duration;
 
 	//File stuff
 	string str;
@@ -70,15 +65,12 @@ SC_MODULE(mobile){
 
 	void sensor(){
 		if(!continueMob) return;
-
-		if(image_counter == 0) return;
-
 		getline(in, str);
 		x = atoi(str.substr(0,3).c_str());
     y = atoi(str.substr(4,7).c_str());
 		cout << endl << name() << endl;
     cout << "X: " << x << " Y: " << y << endl;
-		convert(); //Send as a parameter double int array
+		convert();
 	}
 
 	void convert(){
@@ -134,13 +126,19 @@ SC_MODULE(mobile){
 
 	void compress(){
 		if(ROI != tupleROI){
+			tupleTend = sc_simulation_time();
 			packetize();
 		}
 	}
 
 	void packetize(){
+		// cout << "Packetize" << endl;
+		// cout << "ROI: " << tupleROI << endl;
 		cout << "time: " << sc_simulation_time() << endl << endl;
 
+		// packet[tuple_counter][0] = tupleROI.read();
+		// packet[tuple_counter][1] = tupleTstart.read();
+		// packet[tuple_counter][2] = tupleTend.read();
 		if(tuple_counter != 19){
 			tuple_counter++;
 			cout << "Tuple counter1: " << tuple_counter << endl;
@@ -150,6 +148,7 @@ SC_MODULE(mobile){
 			tuple_counter = 0;
 			packet_counter = 1;
 		}
+		//tupleTstart = sc_simulation_time();
 	}
 
 	void prc_transmit(){
@@ -165,15 +164,16 @@ SC_MODULE(mobile){
 				if(!free){
 					int time = (rand() % 5000);
 					cout << "Random time of " << name() << " is: " << time << endl;
-					wait(sc_time(time, SC_MS));
+					wait(sc_time(time, SC_NS));
 				}else{
 					success = false;
 					while(success == false){
 						outgoing = 1;
+						//wait(incoming.posedge_event());
 						if(incoming){
 							begin = 1;
 							cout << "Send Begin High for " << name() << endl;
-							wait(sc_time(packet_duration, SC_MS));
+							wait(sc_time(2000, SC_NS));
 							end = 1;
 							cout << "Send End High for " << name() << endl;
 							wait(incoming.negedge_event());
@@ -181,7 +181,7 @@ SC_MODULE(mobile){
 						}else{
 							int time = (rand() % 5000);
 							cout << "Wait Random time of " << name() << " is: " << time << endl;
-							wait(time, SC_MS);
+							wait(time, SC_NS);
 						}
 					}
 				}
@@ -191,32 +191,14 @@ SC_MODULE(mobile){
 		}
 	}
 
-	void rx_mobile(){
-		while(true){
-			//If rx_begin signal received from the server increment rx_packet_counter
-			wait(rx_begin.posedge_event());
-			rx_packet_counter++;
-			wait(rx_end.posedge_event());
-
-			//If rx_packet_counter == packet_max - 1, increment image_counter
-			if(rx_packet_counter == packet_max - 1){
-				image_counter++;
-			}
-		}
-	}
-
 	SC_HAS_PROCESS(mobile);
 
-	mobile(sc_module_name name_, int bw, int packetsize) :
+	mobile(sc_module_name name_) :
     sc_module(name_), in("gaze_out.txt"){
 			index = 1, i = 0, tuple_counter = 0, x = 0, y = 0, continueMob = true;
-			packet_max = 8000/packetsize;
-			packet_duration = ((double) packetsize / bw) * 1000;
-			rx_packet_counter = 0;
-			image_counter = 0;
+			tupleTstart = sc_simulation_time();
 			SC_METHOD(sensor);
 			sensitive << clock.pos();
-			SC_THREAD(rx_mobile);
 			SC_THREAD(prc_transmit);
 		}
 };
