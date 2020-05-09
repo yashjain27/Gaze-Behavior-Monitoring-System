@@ -16,8 +16,10 @@ int sc_main(int argc, char* argv[]){
   sc_signal<bool> outgoing1;
   sc_signal<bool> outgoing2;
   sc_signal<bool> outgoing3;
-  sc_signal<bool> free;
+  sc_signal<bool> free[2];
   sc_signal<bool> clock;
+  sc_signal<bool> tx_begin[3];
+  sc_signal<bool> tx_end[3];
 
   sc_core::sc_report_handler::set_actions( "/IEEE_Std_1666/deprecated",
                                            sc_core::SC_DO_NOTHING );
@@ -27,27 +29,36 @@ int sc_main(int argc, char* argv[]){
 
   mobile mob1("mob1", bandwidth, packetsize);
   mob1.clock(clock);
-  mob1.free(free);
+  mob1.free[0](free[0]);
+  mob1.free[1](free[1]);
   mob1.incoming(outgoing1);
   mob1.outgoing(incoming1);
   mob1.begin(begin1);
   mob1.end(end1);
+  mob1.rx_begin(tx_begin[0]);
+  mob1.rx_end(tx_end[0]);
 
   mobile mob2("mob2", bandwidth, packetsize);
   mob2.clock(clock);
-  mob2.free(free);
+  mob2.free[0](free[0]);
+  mob2.free[1](free[1]);
   mob2.incoming(outgoing2);
   mob2.outgoing(incoming2);
   mob2.begin(begin2);
   mob2.end(end2);
+  mob2.rx_begin(tx_begin[1]);
+  mob2.rx_end(tx_end[1]);
 
   mobile mob3("mob3", bandwidth, packetsize);
   mob3.clock(clock);
-  mob3.free(free);
+  mob3.free[0](free[0]);
+  mob3.free[1](free[1]);
   mob3.incoming(outgoing3);
   mob3.outgoing(incoming3);
   mob3.begin(begin3);
   mob3.end(end3);
+  mob3.rx_begin(tx_begin[2]);
+  mob3.rx_end(tx_end[2]);
 
   server srvr("server", bandwidth, packetsize);
   srvr.begin1(begin1);
@@ -62,10 +73,24 @@ int sc_main(int argc, char* argv[]){
   srvr.outgoing1(outgoing1);
   srvr.outgoing2(outgoing2);
   srvr.outgoing3(outgoing3);
-  srvr.free(free);
+  srvr.free[0](free[0]);
+  srvr.free[1](free[1]);
   srvr.clk(clock);
+  srvr.tx_begin[0](tx_begin[0]);
+  srvr.tx_begin[1](tx_begin[1]);
+  srvr.tx_begin[2](tx_begin[2]);
+  srvr.tx_end[0](tx_end[0]);
+  srvr.tx_end[1](tx_end[1]);
+  srvr.tx_end[2](tx_end[2]);
 
-  for(int i = 0; i < 200; i++){
+  for(int i = 0; i < 50000; i++){
+    sc_start(1, SC_MS);
+    clock = 0;
+    sc_start(1, SC_MS);
+    clock = 1;
+  }
+
+  for(int i = 0; i < 80000; i++){
     sc_start(1, SC_MS);
     clock = 0;
     sc_start(1, SC_MS);

@@ -15,9 +15,16 @@ int sc_main(int argc, char* argv[]){
   sc_signal<bool> outgoing1;
   sc_signal<bool> outgoing2;
   sc_signal<bool> outgoing3;
-  sc_signal<bool> free;
+  sc_signal<bool> free[2];
+  //sc_vector<sc_signal<bool> > free{"free_sig",2};
+  sc_signal<bool> clk;
+  sc_signal<bool> tx_begin[3];
+  sc_signal<bool> tx_end[3];
 
-  server srvr("server");
+  int packetsize = 1000;
+  int bandwidth = 1000;
+
+  server srvr("server", bandwidth, packetsize);
   srvr.begin1(begin1);
   srvr.begin2(begin2);
   srvr.begin3(begin3);
@@ -30,7 +37,15 @@ int sc_main(int argc, char* argv[]){
   srvr.outgoing1(outgoing1);
   srvr.outgoing2(outgoing2);
   srvr.outgoing3(outgoing3);
-  srvr.free(free);
+  srvr.free[0](free[0]);
+  srvr.free[1](free[1]);
+  srvr.clk(clk);
+  srvr.tx_begin[0](tx_begin[0]);
+  srvr.tx_begin[1](tx_begin[1]);
+  srvr.tx_begin[2](tx_begin[2]);
+  srvr.tx_end[0](tx_end[0]);
+  srvr.tx_end[1](tx_end[1]);
+  srvr.tx_end[2](tx_end[2]);
 
   //Deprecate
   sc_core::sc_report_handler::set_actions( "/IEEE_Std_1666/deprecated",
@@ -49,8 +64,6 @@ int sc_main(int argc, char* argv[]){
   sc_start(10, SC_NS);
 
   incoming1 = 1;
-  incoming2 = 1;
-  incoming3 = 1;
 
   sc_start(10, SC_NS);
 
@@ -67,4 +80,18 @@ int sc_main(int argc, char* argv[]){
   sc_start(10, SC_NS);
 
   end1 = 0;
+
+  for(int i = 0; i < 50000; i++){
+    sc_start(1, SC_MS);
+    clk = 0;
+    sc_start(1, SC_MS);
+    clk = 1;
+  }
+
+  for(int i = 0; i < 50000; i++){
+    sc_start(1, SC_MS);
+    clk = 0;
+    sc_start(1, SC_MS);
+    clk = 1;
+  }
 }

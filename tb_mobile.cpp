@@ -4,21 +4,32 @@
 int sc_main(int argc, char* argv[]){
   //Inputs
   sc_signal<bool> clock;
-  sc_signal<bool> free;
-  sc_signal<bool> incoming;
-  sc_signal<bool> outgoing;
-  sc_signal<bool> begin;
-  sc_signal<bool> end;
+  sc_signal<bool> incoming1;
+  sc_signal<bool> outgoing1;
+  sc_signal<bool> begin1;
+  sc_signal<bool> end1;
+  sc_signal<bool> free[2];
+  sc_signal<bool> tx_end;
+  sc_signal<bool> tx_begin;
 
-  mobile mob("mob");
-  mob.clock(clock);
-  mob.free(free);
-  mob.incoming(incoming);
-  mob.outgoing(outgoing);
-  mob.begin(begin);
-  mob.end(end);
+  sc_core::sc_report_handler::set_actions( "/IEEE_Std_1666/deprecated",
+                                           sc_core::SC_DO_NOTHING );
 
-  for(int i = 0; i < 30; i++){
+  int packetsize = 1000;
+  int bandwidth = 1000;
+
+  mobile mob1("mob1", bandwidth, packetsize);
+  mob1.clock(clock);
+  mob1.free[0](free[0]);
+  mob1.free[1](free[1]);
+  mob1.incoming(outgoing1);
+  mob1.outgoing(incoming1);
+  mob1.begin(begin1);
+  mob1.end(end1);
+  mob1.rx_begin(tx_begin);
+  mob1.rx_end(tx_end);
+
+  for(int i = 0; i < 5000; i++){
     clock = 0;
     sc_start(10, SC_MS);
     clock = 1;
@@ -26,14 +37,3 @@ int sc_main(int argc, char* argv[]){
   }
 
 }
-
-int image1 [5][5] = {
-  {1, 50, 20, 400, 320},
-  {2, 50, 370, 450, 1000},
-  {3, 470, 20, 600, 900},
-  {4, 670, 40, 950, 550},
-  {5, 680, 700, 1000, 1000}
-};
-
-sc_signal<sc_int<4> > ROI, tupleROI;
-sc_signal<sc_uint<32> > tupleTstart, tupleTend;

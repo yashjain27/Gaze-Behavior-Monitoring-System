@@ -6,20 +6,20 @@ using namespace std;
 
 SC_MODULE(mobile){
 	sc_in<bool> clock;
-	sc_in<bool> free;
-	sc_in<bool> incoming;
-	sc_out<bool> outgoing;
-	sc_out<bool> begin;
-	sc_out<bool> end;
-	sc_out<bool> rx_begin;
-	sc_out<bool> rx_end;
+	sc_vector<sc_in<bool> > free{"free",2};
+	sc_in<bool> incoming{"incoming"};
+	sc_out<bool> outgoing{"outgoing"};
+	sc_out<bool> begin{"begin"};
+	sc_out<bool> end{"end"};
+	sc_in<bool> rx_begin{"rx_begin"};
+	sc_in<bool> rx_end{"rx_end"};
 	sc_signal<sc_int<4> > ROI, tupleROI;
 	sc_signal<bool> packet_counter{"packet_counter"};
 
 	//Variables
 	int image_tracker, tuple_counter, x, y;
 	int size[5] = {5, 4, 4, 7, 7};
-	int index, i;
+	int packet_size, i;
 	int image1 [5][5] = {
 		{1, 50, 20, 400, 320},
 		{2, 50, 370, 450, 1000},
@@ -63,6 +63,7 @@ SC_MODULE(mobile){
 	int rx_packet_counter;
 	int image_counter;
 	double packet_duration;
+	string name;
 
 	//File stuff
 	string str;
@@ -71,62 +72,73 @@ SC_MODULE(mobile){
 	void sensor(){
 		if(!continueMob) return;
 
-		if(image_counter == 0) return;
+		if(!(image_counter > 0 && sc_time_stamp().to_seconds() > 199.99)) return;
+
+		if(sc_time_stamp().to_seconds() > 249.99){
+			image_tracker = 4;
+		}else if(sc_time_stamp().to_seconds() > 229.99){
+			image_tracker = 3;
+		}else if(sc_time_stamp().to_seconds() > 224.99){
+			image_tracker = 2;
+		}else if(sc_time_stamp().to_seconds() > 219.99){
+			image_tracker = 1;
+		}
 
 		getline(in, str);
-		x = atoi(str.substr(0,3).c_str());
-    y = atoi(str.substr(4,7).c_str());
-		cout << endl << name() << endl;
-    cout << "X: " << x << " Y: " << y << endl;
+		if(!str.length() == 0){
+			x = atoi(str.substr(0,3).c_str());
+	    y = atoi(str.substr(4,str.length()).c_str());
+		}
+    //cout << "X: " << x << " Y: " << y << endl;
 		convert(); //Send as a parameter double int array
 	}
 
 	void convert(){
 		tupleROI = ROI; //Assign old value of ROI to tupleROI
-		if(index == 1){
-			ROI = -1;
-			for(i = 0; i < size[index - 1]; i++){
-				if(image1[i][1] <= x && image1[i][3] >= x & image1[i][2] <= y & image1[i][4] >= y){
-					cout << "ROI: " << i << endl;
-					ROI = i;
-					break;
-				}
-			}
-		}else if(index == 2){
-			ROI = -1;
-			for(i = 0; i < size[index - 1]; i++){
-				if(image2[i][1] <= x & image2[i][3] >= x & image2[i][2] <= y & image2[i][4] >= y){
-					cout << "ROI: " << i << endl;
-					ROI = i;
-					break;
-				}
-			}
-		}else if(index == 3){
-			ROI = -1;
-			for(i = 0; i < size[index - 1]; i++){
-				if(image3[i][1] <= x & image3[i][3] >= x & image3[i][2] <= y & image3[i][4] >= y){
-					cout << "ROI: " << i << endl;
-					ROI = i;
-					break;
-				}
-			}
-		}else if(index == 4){
-			ROI = -1;
-			for(i = 0; i < size[index - 1]; i++){
-				if(image4[i][1] <= x & image4[i][3] >= x & image4[i][2] <= y & image4[i][4] >= y){
-					cout << "ROI: " << i << endl;
-					ROI = i;
-					break;
-				}
-			}
-		}else if(index == 5){
-			ROI = -1;
-			for(i = 0; i < size[index - 1]; i++){
-				if(image5[i][1] <= x & image5[i][3] >= x & image5[i][2] <= y & image5[i][4] >= y){
-					cout << "ROI: " << i << endl;
-					ROI = i;
-					break;
-				}
+		int temp[size[image_tracker]][5];
+		switch (image_tracker) {
+			case 0:
+			for(int i = 0; i < size[image_tracker]; i++){
+        for( int j = 0; j < 5; j++){
+            temp[i][j] = image1[i][j];
+        }
+    	}
+			break;
+			case 1:
+			for(int i = 0; i < size[image_tracker]; i++){
+        for( int j = 0; j < 5; j++){
+            temp[i][j] = image2[i][j];
+        }
+    	}
+			break;
+			case 2:
+			for(int i = 0; i < size[image_tracker]; i++){
+        for( int j = 0; j < 5; j++){
+            temp[i][j] = image3[i][j];
+        }
+    	}
+			break;
+			case 3:
+			for(int i = 0; i < size[image_tracker]; i++){
+        for( int j = 0; j < 5; j++){
+            temp[i][j] = image4[i][j];
+        }
+    	}
+			break;
+			case 4:
+			for(int i = 0; i < size[image_tracker]; i++){
+        for( int j = 0; j < 5; j++){
+            temp[i][j] = image5[i][j];
+        }
+    	}
+			break;
+		}
+
+		for(i = 0; i < size[image_tracker]; i++){
+			if(temp[i][1] <= x && temp[i][3] >= x & temp[i][2] <= y & temp[i][4] >= y){
+				//cout << "ROI: " << i << endl;
+				ROI = i;
+				break;
 			}
 		}
 		compress();
@@ -139,14 +151,12 @@ SC_MODULE(mobile){
 	}
 
 	void packetize(){
-		cout << "time: " << sc_simulation_time() << endl << endl;
-
 		if(tuple_counter != 19){
 			tuple_counter++;
-			cout << "Tuple counter1: " << tuple_counter << endl;
+			storage();
 			packet_counter = 0;
 		}else{
-			cout << "Tuple counter2: " << tuple_counter << endl;
+			storage();
 			tuple_counter = 0;
 			packet_counter = 1;
 		}
@@ -157,14 +167,13 @@ SC_MODULE(mobile){
 			begin = 0;
 			end = 0;
 			outgoing = 0;
-			cout << "Before entering packet_counter " << name() << endl;
 			wait(packet_counter.posedge_event());
 			bool success;
 			while(true){
 				continueMob = false;
-				if(!free){
+				if(!free[0] && !free[1]){
 					int time = (rand() % 5000);
-					cout << "Random time of " << name() << " is: " << time << endl;
+					storage();
 					wait(sc_time(time, SC_MS));
 				}else{
 					success = false;
@@ -172,20 +181,22 @@ SC_MODULE(mobile){
 						outgoing = 1;
 						if(incoming){
 							begin = 1;
-							cout << "Send Begin High for " << name() << endl;
+							storage();
 							wait(sc_time(packet_duration, SC_MS));
 							end = 1;
-							cout << "Send End High for " << name() << endl;
+							storage();
 							wait(incoming.negedge_event());
 							success = true;
 						}else{
 							int time = (rand() % 5000);
-							cout << "Wait Random time of " << name() << " is: " << time << endl;
+							storage();
 							wait(time, SC_MS);
 						}
 					}
 				}
 				continueMob = true;
+				image_counter--; //Decrement image counter
+				storage();
 				break;
 			}
 		}
@@ -198,20 +209,34 @@ SC_MODULE(mobile){
 			rx_packet_counter++;
 			wait(rx_end.posedge_event());
 
-			//If rx_packet_counter == packet_max - 1, increment image_counter
-			if(rx_packet_counter == packet_max - 1){
+			storage();
+			if(rx_packet_counter == packet_max){
 				image_counter++;
+				rx_packet_counter = 0;
 			}
 		}
 	}
 
-	SC_HAS_PROCESS(mobile);
+	void storage(){
+		int tuples = tuple_counter*3*64;
+		int rx_packets = rx_packet_counter * packet_size;
+		int images = image_counter * 8000;
+		if(name == "mob1" ){
+			//cout << name << " Storage= " << (tuples + rx_packets + images) << " @" << sc_time_stamp().to_seconds() << endl;
+			//cout << (tuples + rx_packets + images) << endl;
+			cout << sc_time_stamp().to_seconds() << endl;
+		}
+	}
 
+	SC_HAS_PROCESS(mobile);
 	mobile(sc_module_name name_, int bw, int packetsize) :
     sc_module(name_), in("gaze_out.txt"){
-			index = 1, i = 0, tuple_counter = 0, x = 0, y = 0, continueMob = true;
+			name = name_;
+			i = 0, tuple_counter = 0, x = 0, y = 0, continueMob = true;
+			image_tracker = 0;
+			packet_size = packetsize;
 			packet_max = 8000/packetsize;
-			packet_duration = ((double) packetsize / bw) * 1000;
+			packet_duration = (3.84 / bw) * 1000;
 			rx_packet_counter = 0;
 			image_counter = 0;
 			SC_METHOD(sensor);
